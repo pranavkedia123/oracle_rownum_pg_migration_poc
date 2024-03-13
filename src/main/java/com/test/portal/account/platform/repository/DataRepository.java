@@ -20,13 +20,17 @@ public interface DataRepository extends CrudRepository<PayPalStandaloneCredit, L
     @Param("startDate") OffsetDateTime start, @Param("endDate") OffsetDateTime end, @Param("count") long count);
 
   // PostgreSQL
-  @Query("SELECT credit FROM PayPalStandaloneCredit credit WHERE credit.status = :status "
-          + "AND credit.paymentHandle IS NOT NULL AND credit.transactionDate BETWEEN :startDate AND :endDate "
-          + "AND credit.transactionDate = (SELECT MAX(sub.credit.transactionDate) FROM PayPalStandaloneCredit sub "
-          + "WHERE sub.status = :status AND sub.paymentHandle IS NOT NULL "
-          + "AND sub.transactionDate BETWEEN :startDate AND :endDate "
-          + "GROUP BY sub.id ORDER BY MAX(sub.transactionDate) DESC) "
-          + "ORDER BY credit.transactionDate DESC")
+  @Query("SELECT credit FROM PayPalStandaloneCredit credit WHERE credit.status = :status " +
+        "AND credit.paymentHandle IS NOT NULL AND credit.transactionDate BETWEEN :startDate AND :endDate " +
+        "AND credit.transactionDate = (SELECT MAX(sub.transactionDate) FROM (SELECT credit.id, credit.transactionDate FROM PayPalStandaloneCredit credit " +
+        "        WHERE credit.status = :status " +
+        "        AND credit.paymentHandle IS NOT NULL " +
+        "        AND credit.transactionDate BETWEEN :startDate AND :endDate " +
+        "        ORDER BY credit.transactionDate DESC " +
+        "        LIMIT :count" +
+        "    ) sub" +
+        ") " +
+        "ORDER BY credit.transactionDate DESC")
   List<PayPalStandaloneCredit> findTopPostgress(@Param("status") Status status,
     @Param("startDate") OffsetDateTime start, @Param("endDate") OffsetDateTime end, @Param("count") long count);
 
